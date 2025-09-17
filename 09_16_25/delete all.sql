@@ -1,0 +1,2 @@
+-- SQLite
+delete from customer
