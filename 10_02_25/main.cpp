@@ -16,6 +16,7 @@ int getInteger(int low, int high);
 void pickProduct(sqlite3 *db, std::string &prodCode, int &qoh, double &price);
 int createLine(sqlite3 *, int, std::string, int, double, int);
 int updateProduct(sqlite3 *, std::string, int);
+int updateCustomer(sqlite3 *db, int cus, double amt);
 
 int main()
 {
@@ -127,7 +128,14 @@ void makeSale(sqlite3 *db)
         lineNum++;
 
     } while (more == 'y');
-
+    rc = updateCustomer(db, custNumber, total);
+    if (rc == -1)
+    {
+        rollback(db);
+        std::cout << "Error updating customer." << std::endl;
+        return;
+    }
+    std::cout << "inserted invoice #" << invNumber << std::endl;
     commit(db);
 }
 
@@ -410,6 +418,26 @@ int updateProduct(sqlite3 *db, std::string prodCode, int q)
     }
     sqlite3_bind_int(res, 1, q);
     sqlite3_bind_text(res, 2, prodCode.c_str(), -1, SQLITE_STATIC);
+    sqlite3_step(res);
+    sqlite3_finalize(res);
+
+    return SQLITE_OK;
+}
+
+int updateCustomer(sqlite3 *db, int cus, double amt)
+{
+    std::string query = "update customer set cust_balance = cust_balance + ?1 where cust_number = ?2";
+    sqlite3_stmt *res;
+    int rc = sqlite3_prepare_v2(db, query.c_str(), -1, &res, NULL);
+    if (rc != SQLITE_OK)
+    {
+        sqlite3_finalize(res);
+        std::cout << "unable to update customer." << sqlite3_errmsg(db) << std::endl;
+        std::cout << query << std::endl;
+        return -1;
+    }
+    sqlite3_bind_double(res, 1, amt);
+    sqlite3_bind_int(res, 2, cus);
     sqlite3_step(res);
     sqlite3_finalize(res);
 
